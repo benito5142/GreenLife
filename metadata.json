@@ -1,0 +1,6 @@
+{
+  "name": "Green Life Hospital & Care",
+  "description": "A modern hospital management web application with online appointment booking, patient portal for medical reports, and admin management dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
