@@ -234,9 +234,9 @@ export const ReportViewModal: React.FC<ReportViewModalProps> = ({ report, onClos
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    Gemini AI Medical Explainer
+                    OpenRouter AI Medical Explainer
                   </h4>
-                  <p className="text-[10px] text-emerald-300/80">Translate lab jargon into plain English</p>
+                  <p className="text-[10px] text-emerald-300/80">Translate lab jargon with OpenRouter Free AI</p>
                 </div>
               </div>
 

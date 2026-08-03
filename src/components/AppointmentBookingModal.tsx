@@ -283,7 +283,7 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
               <div className="bg-gradient-to-r from-slate-900 to-emerald-950 p-3.5 rounded-2xl border border-emerald-800/40 text-white space-y-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-                  <span className="text-xs font-bold text-white">Unsure which doctor to pick? Ask Gemini AI</span>
+                  <span className="text-xs font-bold text-white">Unsure which doctor to pick? Ask OpenRouter AI</span>
                 </div>
                 
                 <div className="flex gap-2">

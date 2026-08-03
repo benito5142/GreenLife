@@ -4,22 +4,27 @@ import {
   Send, 
   X, 
   Bot, 
-  User, 
   RefreshCw, 
   Maximize2, 
   Minimize2, 
   Copy, 
   Check, 
-  Stethoscope, 
   Activity, 
   ShieldAlert,
   Info,
-  Key,
   Settings,
-  Save
+  Save,
+  Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { sendGeminiChatMessage, getStoredGeminiKey, saveStoredGeminiKey } from '../lib/geminiClient';
+import { 
+  sendGeminiChatMessage, 
+  getStoredOpenRouterKey, 
+  saveStoredOpenRouterKey,
+  getStoredOpenRouterModel,
+  saveStoredOpenRouterModel,
+  OPENROUTER_FREE_MODELS
+} from '../lib/geminiClient';
 
 interface Message {
   id: string;
@@ -33,7 +38,8 @@ export const GeminiChatDrawer: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showKeySettings, setShowKeySettings] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState(getStoredGeminiKey());
+  const [customApiKey, setCustomApiKey] = useState(getStoredOpenRouterKey());
+  const [selectedModel, setSelectedModel] = useState(getStoredOpenRouterModel());
   const [keySavedMsg, setKeySavedMsg] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +51,7 @@ export const GeminiChatDrawer: React.FC = () => {
     {
       id: 'welcome-msg',
       sender: 'ai',
-      text: `Hello${user?.name ? ` ${user.name}` : ''}! 👋 I am **GreenLife AI Assistant**, your 24/7 intelligent health advisor powered by Gemini.\n\nHow can I help you today? You can ask me to analyze symptoms, suggest hospital specialists, explain lab report terminology, or answer general wellness questions.`,
+      text: `Hello${user?.name ? ` ${user.name}` : ''}! 👋 I am **GreenLife AI Health Assistant**, your 24/7 intelligent health consultant powered by OpenRouter Free AI Agents.\n\nHow can I help you today? You can ask me to analyze symptoms, suggest hospital specialists, explain lab report terminology, or answer general health questions.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -80,7 +86,7 @@ export const GeminiChatDrawer: React.FC = () => {
     try {
       // Format messages for history
       const formattedHistory = [...messages, userMsg].map(m => ({
-        role: m.sender === 'user' ? 'user' : 'model',
+        role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text
       }));
 
@@ -98,11 +104,11 @@ export const GeminiChatDrawer: React.FC = () => {
 
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
-      console.error('Gemini Assistant Error:', err);
+      console.error('OpenRouter Assistant Error:', err);
       const errorMsg: Message = {
         id: 'err-' + Date.now(),
         sender: 'ai',
-        text: `⚠️ **Service Notice**: ${err.message || 'Unable to connect to Gemini AI service. Please check your internet connection or server setup.'}`,
+        text: `⚠️ **Service Notice**: ${err.message || 'Unable to connect to OpenRouter AI service.'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -118,9 +124,15 @@ export const GeminiChatDrawer: React.FC = () => {
   };
 
   const handleSaveKey = () => {
-    saveStoredGeminiKey(customApiKey);
+    saveStoredOpenRouterKey(customApiKey);
+    saveStoredOpenRouterModel(selectedModel);
     setKeySavedMsg(true);
     setTimeout(() => setKeySavedMsg(false), 2500);
+  };
+
+  const handleModelChange = (newModel: string) => {
+    setSelectedModel(newModel);
+    saveStoredOpenRouterModel(newModel);
   };
 
   const quickPrompts = [
@@ -131,12 +143,8 @@ export const GeminiChatDrawer: React.FC = () => {
   ];
 
   const renderFormattedText = (rawText: string) => {
-    // Simple markdown rendering helper
     const lines = rawText.split('\n');
     return lines.map((line, idx) => {
-      let formattedLine = line;
-
-      // Handle bolding **text**
       const parts = line.split(/(\*\*.*?\*\*)/g);
       const renderedParts = parts.map((part, pIdx) => {
         if (part.startsWith('**') && part.endsWith('**')) {
@@ -186,10 +194,10 @@ export const GeminiChatDrawer: React.FC = () => {
 
           <div className="text-left hidden sm:block">
             <p className="text-xs font-bold leading-none tracking-wide text-white flex items-center gap-1">
-              GreenLife <span className="bg-emerald-400/30 text-emerald-100 text-[9px] px-1.5 py-0.5 rounded font-mono">AI ASSISTANT</span>
+              GreenLife <span className="bg-emerald-400/30 text-emerald-100 text-[9px] px-1.5 py-0.5 rounded font-mono">OPENROUTER AI</span>
             </p>
             <p className="text-[10px] text-emerald-100/90 font-medium mt-0.5">
-              Powered by Gemini
+              Free Tier Agents
             </p>
           </div>
         </button>
@@ -201,7 +209,7 @@ export const GeminiChatDrawer: React.FC = () => {
           className={`fixed z-50 transition-all duration-300 ease-in-out ${
             isExpanded 
               ? 'inset-4 md:inset-10 bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col' 
-              : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[440px] h-[600px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col'
+              : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[460px] h-[620px] max-h-[88vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col'
           }`}
         >
           {/* Header */}
@@ -217,12 +225,12 @@ export const GeminiChatDrawer: React.FC = () => {
                     GreenLife AI Assistant
                   </h3>
                   <span className="text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                    Gemini 3.6
+                    OpenRouter Free
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-200/80 font-medium flex items-center gap-1.5">
                   <Activity className="w-3 h-3 text-emerald-400" />
-                  24/7 Virtual Health Consultant
+                  24/7 OpenRouter Health Consultant
                 </p>
               </div>
             </div>
@@ -230,12 +238,12 @@ export const GeminiChatDrawer: React.FC = () => {
             <div className="flex items-center gap-1 text-slate-300">
               <button
                 onClick={() => setShowKeySettings(!showKeySettings)}
-                title="Gemini API Key Settings (For Netlify / Static Hosting)"
+                title="OpenRouter Model & Key Settings"
                 className={`p-1.5 rounded-xl transition-colors ${
-                  showKeySettings || customApiKey ? 'bg-amber-500/20 text-amber-300' : 'hover:bg-white/10 hover:text-white'
+                  showKeySettings ? 'bg-amber-500/20 text-amber-300' : 'hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <Key className="w-4 h-4" />
+                <Settings className="w-4 h-4" />
               </button>
 
               <button
@@ -271,13 +279,13 @@ export const GeminiChatDrawer: React.FC = () => {
             </div>
           </div>
 
-          {/* API Key Configuration Panel for Static Hosting (Netlify) */}
+          {/* Model & Key Configuration Drawer Panel */}
           {showKeySettings && (
             <div className="bg-slate-900 text-white p-4 border-b border-emerald-800/40 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
-                  <Key className="w-4 h-4" />
-                  <span>Client Gemini API Key Configuration</span>
+                  <Cpu className="w-4 h-4" />
+                  <span>OpenRouter AI Model & Key Configuration</span>
                 </div>
                 <button 
                   onClick={() => setShowKeySettings(false)}
@@ -287,34 +295,68 @@ export const GeminiChatDrawer: React.FC = () => {
                 </button>
               </div>
 
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                When hosted as a pure static site on Netlify (without Node server), enter your Google Gemini API key below to enable direct client-side AI responses.
-              </p>
-
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  placeholder="AIzaSy..."
-                  value={customApiKey}
-                  onChange={(e) => setCustomApiKey(e.target.value)}
-                  className="flex-1 bg-slate-950 text-white font-mono text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-400"
-                />
-                <button
-                  onClick={handleSaveKey}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1 shrink-0"
+              {/* Model Selector Dropdown */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Select OpenRouter Free Tier Agent Model:
+                </label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="w-full bg-slate-950 text-white text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-400 font-medium"
                 >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>Save Key</span>
-                </button>
+                  {OPENROUTER_FREE_MODELS.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-emerald-400/90 mt-1">
+                  {OPENROUTER_FREE_MODELS.find(m => m.id === selectedModel)?.desc || 'Free Tier Model on OpenRouter'}
+                </p>
+              </div>
+
+              {/* Optional Custom Key Input */}
+              <div className="pt-2 border-t border-slate-800">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                  <span>Custom OpenRouter API Key (Optional):</span>
+                  <a 
+                    href="https://openrouter.ai/keys" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-amber-300 hover:underline text-[10px]"
+                  >
+                    Get Free Key ↗
+                  </a>
+                </label>
+
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    placeholder="sk-or-v1-..."
+                    value={customApiKey}
+                    onChange={(e) => setCustomApiKey(e.target.value)}
+                    className="flex-1 bg-slate-950 text-white font-mono text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-400"
+                  />
+                  <button
+                    onClick={handleSaveKey}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1 shrink-0"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save</span>
+                  </button>
+                </div>
               </div>
 
               {keySavedMsg && (
                 <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Gemini API Key saved to browser storage!
+                  <Check className="w-3 h-3" /> OpenRouter settings saved successfully!
                 </p>
               )}
             </div>
           )}
+
+          {/* Prompt Suggestions */}
           <div className="bg-emerald-50/60 border-b border-emerald-100/80 px-4 py-2.5 overflow-x-auto no-scrollbar flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 whitespace-nowrap shrink-0 flex items-center gap-1">
               <Info className="w-3 h-3 text-emerald-600" /> Suggestions:
@@ -393,13 +435,13 @@ export const GeminiChatDrawer: React.FC = () => {
             {loading && (
               <div className="flex gap-3 justify-start">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
-                  <Bot className="w-4 h-4 animate-spin" />
+                  <Bot className="w-4 h-4 animate-spin text-emerald-300" />
                 </div>
                 <div className="bg-white rounded-2xl rounded-tl-xs p-4 shadow-2xs border border-slate-200/80 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  <span className="text-xs text-slate-400 font-medium ml-2">Gemini is analyzing...</span>
+                  <span className="text-xs text-slate-500 font-medium ml-2">OpenRouter AI agent is analyzing...</span>
                 </div>
               </div>
             )}
