@@ -7,6 +7,7 @@ import { AuthModal } from './components/AuthModal';
 import { DepartmentDetailModal } from './components/DepartmentDetailModal';
 import { DoctorDetailModal } from './components/DoctorDetailModal';
 import { AppointmentBookingModal } from './components/AppointmentBookingModal';
+import { GeminiChatDrawer } from './components/GeminiChatDrawer';
 
 import { HomePage } from './pages/HomePage';
 import { DepartmentsPage } from './pages/DepartmentsPage';
@@ -153,6 +154,9 @@ function MainAppContent() {
         onClose={() => setSelectedDocDetails(null)}
         onBookAppointment={(deptId, docId) => handleOpenBooking(deptId, docId)}
       />
+
+      {/* Floating 24/7 Gemini AI Health Assistant Chatbot */}
+      <GeminiChatDrawer />
 
     </div>
   );

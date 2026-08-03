@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, FileText, Download, Calendar, User, Stethoscope, CheckCircle2, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, FileText, Download, Calendar, User, Stethoscope, CheckCircle2, ShieldCheck, Sparkles, Bot, Loader2, HelpCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { MedicalReport } from '../types/hospital';
 
@@ -9,7 +9,43 @@ interface ReportViewModalProps {
 }
 
 export const ReportViewModal: React.FC<ReportViewModalProps> = ({ report, onClose }) => {
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   if (!report) return null;
+
+  const handleAnalyzeWithGemini = async () => {
+    setAiAnalyzing(true);
+    setAiError(null);
+
+    try {
+      const response = await fetch('/api/gemini/analyze-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportTitle: report.title,
+          category: report.category,
+          summary: report.summary,
+          diagnosis: report.diagnosis,
+          fileDataUrl: report.fileDataUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze report');
+      }
+
+      setAiAnalysisResult(data.analysis);
+    } catch (err: any) {
+      console.error('AI Analysis Error:', err);
+      setAiError(err.message || 'Gemini service is temporarily unavailable.');
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
 
   const handleDownloadPDF = () => {
     // 1. If user uploaded an actual base64 fileDataUrl (PDF or image), trigger direct download
@@ -197,6 +233,58 @@ export const ReportViewModal: React.FC<ReportViewModalProps> = ({ report, onClos
               </div>
             </div>
           )}
+
+          {/* AI Report Analysis Section */}
+          <div className="bg-gradient-to-r from-slate-900 to-emerald-950 p-4 rounded-2xl border border-emerald-800/40 text-white space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-300">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    Gemini AI Medical Explainer
+                  </h4>
+                  <p className="text-[10px] text-emerald-300/80">Translate lab jargon into plain English</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleAnalyzeWithGemini}
+                disabled={aiAnalyzing}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50 active:scale-95"
+              >
+                {aiAnalyzing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-200" />
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>{aiAnalysisResult ? 'Re-Analyze with AI' : 'Explain Report'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {aiError && (
+              <p className="text-xs text-rose-300 bg-rose-950/50 p-2 rounded-xl border border-rose-800/50">
+                ⚠️ {aiError}
+              </p>
+            )}
+
+            {aiAnalysisResult && (
+              <div className="bg-slate-950/80 p-3.5 rounded-xl border border-emerald-500/30 text-xs text-slate-200 leading-relaxed max-h-60 overflow-y-auto space-y-2 animate-in fade-in">
+                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border-b border-emerald-800/40 pb-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" /> AI Patient Plain-English Summary
+                </div>
+                <div className="whitespace-pre-wrap font-sans text-xs space-y-1">
+                  {aiAnalysisResult}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
             <span className="text-[11px] text-slate-400 font-medium">

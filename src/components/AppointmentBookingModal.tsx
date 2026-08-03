@@ -52,9 +52,56 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
   const [patientPhone, setPatientPhone] = useState<string>(user?.phone || '');
   const [reason, setReason] = useState<string>('');
 
+  const [symptomInput, setSymptomInput] = useState<string>('');
+  const [matchingAi, setMatchingAi] = useState(false);
+  const [aiMatchResult, setAiMatchResult] = useState<string | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
+
+  const handleAiMatchSymptoms = async () => {
+    if (!symptomInput.trim()) return;
+    setMatchingAi(true);
+    setAiMatchResult(null);
+
+    try {
+      const response = await fetch('/api/gemini/recommend-doctor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symptoms: symptomInput,
+          availableDepartments: departments.map(d => ({ id: d.id, name: d.name, description: d.description })),
+          availableDoctors: doctors.map(d => ({ id: d.id, name: d.name, specialty: d.specialty, departmentId: d.departmentId, qualification: d.qualification }))
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to match symptoms with AI');
+
+      setAiMatchResult(data.recommendation);
+
+      // Auto-preselect matched doctor or department if mentioned in response
+      const recText = data.recommendation.toLowerCase();
+      const matchedDoc = doctors.find(d => recText.includes(d.name.toLowerCase()));
+      if (matchedDoc) {
+        setSelectedDeptId(matchedDoc.departmentId);
+        setSelectedDocId(matchedDoc.id);
+      } else {
+        const matchedDept = departments.find(d => recText.includes(d.name.toLowerCase()));
+        if (matchedDept) {
+          setSelectedDeptId(matchedDept.id);
+        }
+      }
+
+      setReason(symptomInput);
+    } catch (err: any) {
+      console.error('AI Matcher Error:', err);
+      setError(err.message || 'Unable to analyze symptoms at this time.');
+    } finally {
+      setMatchingAi(false);
+    }
+  };
 
   // Sync initial values
   useEffect(() => {
@@ -237,6 +284,38 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
                   <span>{error}</span>
                 </div>
               )}
+
+              {/* AI Symptom Checker & Doctor Matcher Card */}
+              <div className="bg-gradient-to-r from-slate-900 to-emerald-950 p-3.5 rounded-2xl border border-emerald-800/40 text-white space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                  <span className="text-xs font-bold text-white">Unsure which doctor to pick? Ask Gemini AI</span>
+                </div>
+                
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Describe your symptoms (e.g. sharp knee pain, persistent headache)..."
+                    value={symptomInput}
+                    onChange={(e) => setSymptomInput(e.target.value)}
+                    className="flex-1 bg-slate-950/80 text-white placeholder-slate-400 text-xs px-3 py-2 rounded-xl border border-emerald-500/30 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAiMatchSymptoms}
+                    disabled={matchingAi || !symptomInput.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs whitespace-nowrap transition-all disabled:opacity-50 active:scale-95 flex items-center gap-1"
+                  >
+                    {matchingAi ? 'Matching...' : 'Match Doctor'}
+                  </button>
+                </div>
+
+                {aiMatchResult && (
+                  <div className="bg-slate-950/90 p-3 rounded-xl border border-emerald-500/40 text-[11px] text-emerald-100 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                    {aiMatchResult}
+                  </div>
+                )}
+              </div>
 
               {/* Step 1: Department & Doctor */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
