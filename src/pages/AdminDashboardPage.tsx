@@ -455,10 +455,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <div key={doc.id} className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3 relative">
                 <div className="flex items-start gap-3">
                   <img
-                    src={doc.imageUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80'}
+                    src={doc.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name)}&background=047857&color=fff&size=300`}
                     alt={doc.name}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80';
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name)}&background=047857&color=fff&size=300`;
                     }}
                     className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-200"
                   />

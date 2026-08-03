@@ -53,12 +53,28 @@ export async function autoSeedDatabase() {
       }
     }
 
-    // 2. Seed Doctors if empty
+    // 2. Seed Doctors if empty or auto-heal duplicate image URLs
     const docSnap = await getDocs(collection(db, 'doctors'));
     if (docSnap.empty) {
       console.log('Seeding initial doctors to Firestore...');
       for (const doctor of INITIAL_DOCTORS) {
         await setDoc(doc(db, 'doctors', doctor.id), doctor);
+      }
+    } else {
+      // Heal doctor image URLs if they match duplicate or broken links
+      const existingDocs = docSnap.docs.map(d => ({ id: d.id, ...d.data() } as Doctor));
+      for (const initDoc of INITIAL_DOCTORS) {
+        const found = existingDocs.find(d => d.id === initDoc.id);
+        if (found) {
+          // If Dr. Emily Watson or any other doctor has the same image URL as Dr. Sarah Jenkins or a broken image
+          if (found.id === 'doc-3' && (found.imageUrl === INITIAL_DOCTORS[0].imageUrl || !found.imageUrl || found.imageUrl.includes('photo-1594824813566') || found.imageUrl.includes('photo-1527613426441'))) {
+            await updateDoc(doc(db, 'doctors', 'doc-3'), { imageUrl: initDoc.imageUrl });
+            console.log('Auto-updated Dr. Emily Watson image URL to distinct portrait:', initDoc.imageUrl);
+          }
+        } else {
+          // Add missing default doctor
+          await setDoc(doc(db, 'doctors', initDoc.id), initDoc);
+        }
       }
     }
 
