@@ -13,10 +13,13 @@ import {
   Stethoscope, 
   Activity, 
   ShieldAlert,
-  Info
+  Info,
+  Key,
+  Settings,
+  Save
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { sendGeminiChatMessage } from '../lib/geminiClient';
+import { sendGeminiChatMessage, getStoredGeminiKey, saveStoredGeminiKey } from '../lib/geminiClient';
 
 interface Message {
   id: string;
@@ -29,6 +32,9 @@ export const GeminiChatDrawer: React.FC = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showKeySettings, setShowKeySettings] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState(getStoredGeminiKey());
+  const [keySavedMsg, setKeySavedMsg] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -109,6 +115,12 @@ export const GeminiChatDrawer: React.FC = () => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleSaveKey = () => {
+    saveStoredGeminiKey(customApiKey);
+    setKeySavedMsg(true);
+    setTimeout(() => setKeySavedMsg(false), 2500);
   };
 
   const quickPrompts = [
@@ -217,6 +229,16 @@ export const GeminiChatDrawer: React.FC = () => {
 
             <div className="flex items-center gap-1 text-slate-300">
               <button
+                onClick={() => setShowKeySettings(!showKeySettings)}
+                title="Gemini API Key Settings (For Netlify / Static Hosting)"
+                className={`p-1.5 rounded-xl transition-colors ${
+                  showKeySettings || customApiKey ? 'bg-amber-500/20 text-amber-300' : 'hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Key className="w-4 h-4" />
+              </button>
+
+              <button
                 onClick={() => setMessages([
                   {
                     id: 'welcome-reset',
@@ -249,7 +271,50 @@ export const GeminiChatDrawer: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Prompts Bar */}
+          {/* API Key Configuration Panel for Static Hosting (Netlify) */}
+          {showKeySettings && (
+            <div className="bg-slate-900 text-white p-4 border-b border-emerald-800/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                  <Key className="w-4 h-4" />
+                  <span>Client Gemini API Key Configuration</span>
+                </div>
+                <button 
+                  onClick={() => setShowKeySettings(false)}
+                  className="text-slate-400 hover:text-white text-xs"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                When hosted as a pure static site on Netlify (without Node server), enter your Google Gemini API key below to enable direct client-side AI responses.
+              </p>
+
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  placeholder="AIzaSy..."
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  className="flex-1 bg-slate-950 text-white font-mono text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-400"
+                />
+                <button
+                  onClick={handleSaveKey}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1 shrink-0"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Key</span>
+                </button>
+              </div>
+
+              {keySavedMsg && (
+                <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Gemini API Key saved to browser storage!
+                </p>
+              )}
+            </div>
+          )}
           <div className="bg-emerald-50/60 border-b border-emerald-100/80 px-4 py-2.5 overflow-x-auto no-scrollbar flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 whitespace-nowrap shrink-0 flex items-center gap-1">
               <Info className="w-3 h-3 text-emerald-600" /> Suggestions:

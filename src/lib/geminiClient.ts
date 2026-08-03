@@ -19,10 +19,28 @@ async function parseJsonResponse(response: Response) {
 }
 
 /**
- * Gets a client-side GoogleGenAI instance if API key is present in client environment.
+ * Gets a client-side GoogleGenAI instance if API key is present in client environment or localStorage.
  */
+export function getStoredGeminiKey(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('user_gemini_api_key') || 
+         (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+         (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : '') || 
+         '';
+}
+
+export function saveStoredGeminiKey(key: string) {
+  if (typeof window !== 'undefined') {
+    if (key.trim()) {
+      localStorage.setItem('user_gemini_api_key', key.trim());
+    } else {
+      localStorage.removeItem('user_gemini_api_key');
+    }
+  }
+}
+
 function getClientGenAI() {
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : '');
+  const apiKey = getStoredGeminiKey();
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 }
@@ -77,6 +95,9 @@ Patient Context: ${userContext ? JSON.stringify(userContext) : 'Guest Patient'}`
     }
 
     // Re-throw descriptive error if neither succeeded
+    if (serverErr.message?.includes('404')) {
+      throw new Error('Netlify Static Hosting Notice: The backend Express API (/api/gemini/chat) is not active on static hosting. Please click the 🔑 Settings icon in the chat title bar to enter your Gemini API Key or set VITE_GEMINI_API_KEY in Netlify.');
+    }
     throw new Error(serverErr.message || 'Unable to connect to Gemini AI server endpoint.');
   }
 
@@ -146,6 +167,9 @@ Please provide a structured, patient-friendly medical analysis including:
       }
     }
 
+    if (serverErr.message?.includes('404')) {
+      throw new Error('Netlify Static Hosting Notice: The backend Express API (/api) is not running on Netlify static hosting. Please enter a Gemini API key in AI Chat Settings or configure VITE_GEMINI_API_KEY in Netlify.');
+    }
     throw new Error(serverErr.message || 'Unable to connect to Gemini report analysis service.');
   }
 
@@ -193,6 +217,9 @@ Provide triage assessment, urgency level, recommended department, doctor match, 
       }
     }
 
+    if (serverErr.message?.includes('404')) {
+      throw new Error('Netlify Static Hosting Notice: Express API (/api) not active on static hosting. Please enter a Gemini API Key in AI Chat Settings or set VITE_GEMINI_API_KEY in Netlify.');
+    }
     throw new Error(serverErr.message || 'Unable to evaluate symptoms at this time.');
   }
 
