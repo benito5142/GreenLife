@@ -21,6 +21,7 @@ import {
 import { Department, Doctor } from '../types/hospital';
 import { DepartmentCard } from '../components/DepartmentCard';
 import { DoctorCard } from '../components/DoctorCard';
+import { TestimonialSlider } from '../components/TestimonialSlider';
 import { useAuth } from '../context/AuthContext';
 
 interface HomePageProps {
@@ -323,25 +324,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* PATIENT TESTIMONIALS */}
-      <section className="bg-emerald-950 text-white py-16 rounded-3xl mx-4 sm:mx-6 lg:mx-8 px-6 sm:px-12 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <div className="flex justify-center gap-1 text-amber-400">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-amber-400" />
-            ))}
-          </div>
-
-          <blockquote className="text-lg sm:text-2xl font-bold italic leading-relaxed text-slate-100">
-            "The cardiology team at Green Life Hospital treated my heart condition with immense care and precision. Being able to book appointments online and download my lab results from my dashboard saved me so much stress!"
-          </blockquote>
-
-          <div>
-            <p className="text-sm font-extrabold text-emerald-400">Michael Vance</p>
-            <p className="text-xs text-slate-400">Cardiology Patient, New York</p>
-          </div>
-        </div>
-      </section>
+      {/* PATIENT TESTIMONIALS SLIDER */}
+      <TestimonialSlider />
 
     </div>
   );
