@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, FileText, Download, Calendar, User, Stethoscope, CheckCircle2, ShieldCheck } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { MedicalReport } from '../types/hospital';
 
 interface ReportViewModalProps {
@@ -10,36 +11,122 @@ interface ReportViewModalProps {
 export const ReportViewModal: React.FC<ReportViewModalProps> = ({ report, onClose }) => {
   if (!report) return null;
 
-  const handleDownloadSimulation = () => {
-    // Generate text download simulation
-    const content = `GREEN LIFE HOSPITAL - OFFICIAL MEDICAL REPORT
-================================================
-Report Title: ${report.title}
-Category: ${report.category}
-Patient Name: ${report.patientName}
-Date: ${report.date}
-Attending Doctor: ${report.doctorName || 'Green Life Hospital Staff'}
+  const handleDownloadPDF = () => {
+    // 1. If user uploaded an actual base64 fileDataUrl (PDF or image), trigger direct download
+    if (report.fileDataUrl) {
+      const a = document.createElement('a');
+      a.href = report.fileDataUrl;
+      a.download = report.fileName || `medical_report_${report.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
 
-DIAGNOSIS / KEY FINDINGS:
-------------------------------------------------
-${report.diagnosis || 'No specific pathological diagnosis noted.'}
+    // 2. Otherwise generate a high-quality, valid PDF using jsPDF
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-DETAILED SUMMARY:
-------------------------------------------------
-${report.summary}
+      // Header Banner (Emerald Gradient Style)
+      doc.setFillColor(16, 185, 129); // Emerald 500
+      doc.rect(0, 0, 210, 38, 'F');
 
-Status: Verified (${report.status})
-Document Reference: #${report.id}
-`;
+      // Header Text
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.text('GREEN LIFE HOSPITAL', 14, 18);
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = report.fileName || `report_${report.id}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Official Verified Patient Medical Record', 14, 26);
+      doc.text(`Doc Ref: #${report.id.slice(0, 10).toUpperCase()}`, 145, 26);
+
+      // Title
+      doc.setTextColor(15, 23, 42); // Slate 900
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(report.title, 14, 50);
+
+      // Patient Info Card Container
+      doc.setFillColor(248, 250, 252); // Slate 50
+      doc.setDrawColor(226, 232, 240); // Slate 200
+      doc.roundedRect(14, 56, 182, 40, 3, 3, 'FD');
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // Slate 500
+      doc.setFont('helvetica', 'normal');
+      doc.text('Patient Name:', 20, 66);
+      doc.text('Category:', 20, 74);
+      doc.text('Date of Service:', 20, 82);
+
+      doc.text('Attending Physician:', 110, 66);
+      doc.text('Document Status:', 110, 74);
+      doc.text('Hospital ID:', 110, 82);
+
+      doc.setTextColor(15, 23, 42); // Slate 900
+      doc.setFont('helvetica', 'bold');
+      doc.text(report.patientName || 'Patient Record', 52, 66);
+      doc.text(report.category || 'General', 52, 74);
+      doc.text(report.date || 'N/A', 52, 82);
+
+      doc.text(report.doctorName || 'Green Life Medical Staff', 152, 66);
+      doc.text((report.status || 'Verified').toUpperCase(), 152, 74);
+      doc.text('GLH-2026-MED', 152, 82);
+
+      // Section: Clinical Summary
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(5, 150, 105); // Emerald 600
+      doc.text('CLINICAL SUMMARY & FINDINGS', 14, 110);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+
+      const summaryText = report.summary || 'No detailed clinical summary recorded for this entry.';
+      const summaryLines = doc.splitTextToSize(summaryText, 180);
+      doc.text(summaryLines, 14, 118);
+
+      let nextY = 118 + (summaryLines.length * 6) + 12;
+
+      // Section: Diagnosis / Impression if available
+      if (report.diagnosis) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(5, 150, 105);
+        doc.text('MEDICAL DIAGNOSIS / IMPRESSION', 14, nextY);
+        nextY += 8;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(51, 65, 85);
+        const diagLines = doc.splitTextToSize(report.diagnosis, 180);
+        doc.text(diagLines, 14, nextY);
+        nextY += (diagLines.length * 6) + 12;
+      }
+
+      // Hospital Verification Stamp / Footer
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 260, 196, 260);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(148, 163, 184);
+      doc.text('This medical document is digitally authorized by Green Life Hospital & Care Management System.', 14, 268);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} (UTC)`, 14, 273);
+
+      const pdfName = (report.title.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'medical_report') + '.pdf';
+      doc.save(pdfName);
+    } catch (err) {
+      console.error('PDF Generation Error:', err);
+      // Fallback
+      alert('Generating PDF failed. Please try again.');
+    }
   };
 
   return (
@@ -117,7 +204,7 @@ Document Reference: #${report.id}
             </span>
 
             <button
-              onClick={handleDownloadSimulation}
+              onClick={handleDownloadPDF}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
             >
               <Download className="w-4 h-4" />
