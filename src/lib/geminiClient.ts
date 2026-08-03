@@ -81,7 +81,7 @@ Patient Context: ${userContext ? JSON.stringify(userContext) : 'Guest Patient'}`
         const lastMsg = messages[messages.length - 1]?.content || '';
 
         const chat = clientAi.chats.create({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           history,
           config: { systemInstruction, temperature: 0.7 }
         });
@@ -153,7 +153,7 @@ Please provide a structured, patient-friendly medical analysis including:
         promptParts.push({ text: promptText });
 
         const res = await clientAi.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: { parts: promptParts },
           config: {
             systemInstruction: 'You are a Senior Clinical Diagnostic AI Specialist at Green Life Hospital.',
@@ -203,7 +203,7 @@ Doctors: ${JSON.stringify(availableDoctors)}
 Provide triage assessment, urgency level, recommended department, doctor match, and pre-consultation advice.`;
 
         const res = await clientAi.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: promptText,
           config: {
             systemInstruction: 'You are a Clinical Triage & Department Matching AI at Green Life Hospital.',
