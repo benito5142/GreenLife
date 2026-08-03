@@ -21,8 +21,11 @@ export const DoctorCard: React.FC<DoctorCardProps> = ({
         <div className="flex items-start gap-4 mb-4">
           <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-slate-100 border-2 border-emerald-500/20 shadow-xs">
             <img
-              src={doctor.imageUrl}
+              src={doctor.imageUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80'}
               alt={doctor.name}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80';
+              }}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           </div>

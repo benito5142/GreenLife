@@ -30,8 +30,11 @@ export const DoctorDetailModal: React.FC<DoctorDetailModalProps> = ({
 
           <div className="flex items-center gap-4">
             <img
-              src={doctor.imageUrl}
+              src={doctor.imageUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80'}
               alt={doctor.name}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80';
+              }}
               className="w-20 h-20 rounded-2xl object-cover border-2 border-emerald-400/40 shadow-md shrink-0"
             />
             <div>

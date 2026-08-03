@@ -123,7 +123,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     qualification: 'MD (Pediatrics), DCH',
     rating: 4.9,
     reviewCount: 310,
-    imageUrl: 'https://images.unsplash.com/photo-1594824813566-78a931063653?auto=format&fit=crop&w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&w=600&q=80',
     bio: 'Passionate about child health and early development. Dr. Watson is beloved by her young patients for her reassuring approach and empathetic patient communication.',
     consultationFee: 90,
     availableDays: ['Tue', 'Wed', 'Thu', 'Sat'],

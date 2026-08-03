@@ -454,7 +454,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             {filteredDoctors.map(doc => (
               <div key={doc.id} className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3 relative">
                 <div className="flex items-start gap-3">
-                  <img src={doc.imageUrl} alt={doc.name} className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-200" />
+                  <img
+                    src={doc.imageUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80'}
+                    alt={doc.name}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80';
+                    }}
+                    className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-200"
+                  />
                   <div>
                     <span className="text-[10px] font-bold uppercase bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md">
                       {doc.departmentName}
