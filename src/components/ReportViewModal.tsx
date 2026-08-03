@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, FileText, Download, Calendar, User, Stethoscope, CheckCircle2, ShieldCheck, Sparkles, Bot, Loader2, HelpCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { MedicalReport } from '../types/hospital';
+import { analyzeMedicalReportWithGemini } from '../lib/geminiClient';
 
 interface ReportViewModalProps {
   report: MedicalReport | null;
@@ -20,25 +21,15 @@ export const ReportViewModal: React.FC<ReportViewModalProps> = ({ report, onClos
     setAiError(null);
 
     try {
-      const response = await fetch('/api/gemini/analyze-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportTitle: report.title,
-          category: report.category,
-          summary: report.summary,
-          diagnosis: report.diagnosis,
-          fileDataUrl: report.fileDataUrl,
-        }),
+      const result = await analyzeMedicalReportWithGemini({
+        reportTitle: report.title,
+        category: report.category,
+        summary: report.summary,
+        diagnosis: report.diagnosis,
+        fileDataUrl: report.fileDataUrl,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze report');
-      }
-
-      setAiAnalysisResult(data.analysis);
+      setAiAnalysisResult(result);
     } catch (err: any) {
       console.error('AI Analysis Error:', err);
       setAiError(err.message || 'Gemini service is temporarily unavailable.');

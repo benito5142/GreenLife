@@ -14,6 +14,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { matchDoctorWithGemini } from '../lib/geminiClient';
 import { Department, Doctor } from '../types/hospital';
 import { createAppointment } from '../lib/firebase';
 
@@ -66,23 +67,16 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
     setAiMatchResult(null);
 
     try {
-      const response = await fetch('/api/gemini/recommend-doctor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symptoms: symptomInput,
-          availableDepartments: departments.map(d => ({ id: d.id, name: d.name, description: d.description })),
-          availableDoctors: doctors.map(d => ({ id: d.id, name: d.name, specialty: d.specialty, departmentId: d.departmentId, qualification: d.qualification }))
-        })
-      });
+      const recommendationText = await matchDoctorWithGemini(
+        symptomInput,
+        departments.map(d => ({ id: d.id, name: d.name, description: d.description })),
+        doctors.map(d => ({ id: d.id, name: d.name, specialty: d.specialty, departmentId: d.departmentId, qualification: d.qualification }))
+      );
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to match symptoms with AI');
-
-      setAiMatchResult(data.recommendation);
+      setAiMatchResult(recommendationText);
 
       // Auto-preselect matched doctor or department if mentioned in response
-      const recText = data.recommendation.toLowerCase();
+      const recText = recommendationText.toLowerCase();
       const matchedDoc = doctors.find(d => recText.includes(d.name.toLowerCase()));
       if (matchedDoc) {
         setSelectedDeptId(matchedDoc.departmentId);

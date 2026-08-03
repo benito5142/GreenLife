@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { sendGeminiChatMessage } from '../lib/geminiClient';
 
 interface Message {
   id: string;
@@ -77,25 +78,15 @@ export const GeminiChatDrawer: React.FC = () => {
         content: m.text
       }));
 
-      const response = await fetch('/api/gemini/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: formattedHistory,
-          userContext: user ? { name: user.name, role: user.role } : null
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to communicate with AI Assistant');
-      }
+      const replyText = await sendGeminiChatMessage(
+        formattedHistory,
+        user ? { name: user.name, role: user.role } : null
+      );
 
       const aiMsg: Message = {
         id: 'ai-' + Date.now(),
         sender: 'ai',
-        text: data.reply || 'I apologize, but I could not formulate a response at this moment.',
+        text: replyText || 'I apologize, but I could not formulate a response at this moment.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
