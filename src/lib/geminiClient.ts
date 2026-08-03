@@ -45,7 +45,63 @@ function getClientGenAI() {
   return new GoogleGenAI({ apiKey });
 }
 
+function getClinicalFallbackResponse(userQuery: string): string {
+  const q = userQuery.toLowerCase();
+  
+  let coreAdvice = '';
+  if (q.includes('headache') || q.includes('fever') || q.includes('cold') || q.includes('flu') || q.includes('migraine')) {
+    coreAdvice = `### 🩺 Green Life Clinical Guidance: Fever & Headache Symptoms
+
+**General Assessment:**
+Fevers and headaches are common physiological responses to viral infections, tension, dehydration, or fatigue.
+
+**Recommended Steps:**
+1. **Hydration & Rest:** Stay well hydrated with fluids (water, oral rehydration solution) and rest in a quiet, dark room.
+2. **Temperature Monitoring:** Monitor body temperature every 4 hours.
+3. **Emergency Warning Signs:** Seek urgent medical care if you experience a high fever (>102°F/39°C), severe neck stiffness, sudden vision changes, or confusion.
+
+**Recommended Department:** Internal Medicine / General OPD
+**Suggested Specialist:** Dr. Sarah Jenkins (General Physician) or Dr. Robert Vance (Internal Medicine)`;
+  } else if (q.includes('knee') || q.includes('leg') || q.includes('joint') || q.includes('bone') || q.includes('back pain') || q.includes('fracture')) {
+    coreAdvice = `### 🦴 Green Life Clinical Guidance: Joint & Musculoskeletal Care
+
+**General Assessment:**
+Joint, knee, or back pain frequently arises from ligament strain, arthritis, cartilage inflammation, or physical exertion.
+
+**Recommended Steps:**
+1. **R.I.C.E Protocol:** Rest the affected joint, apply Ice packs for 15-20 mins, gently Compress with an elastic bandage, and Elevate.
+2. **Avoid Strain:** Refrain from heavy lifting or high-impact exercise until evaluated.
+
+**Recommended Department:** Orthopedics & Joint Care Center
+**Suggested Specialist:** Dr. Aris Thorne (Orthopedic Surgeon) or Dr. Elena Rostova (Rheumatology)`;
+  } else if (q.includes('heart') || q.includes('chest') || q.includes('bp') || q.includes('blood pressure') || q.includes('cardio')) {
+    coreAdvice = `### 🫀 Green Life Urgent Care Notice: Cardiovascular Symptoms
+
+**Important Safety Disclaimer:**
+Chest pain, pressure, or sudden shortness of breath requires immediate clinical evaluation. If you feel crushing chest pain radiating to your jaw or left arm, call Emergency Hotline **+1 (800) 473-3654** immediately or visit our 24/7 Level-1 Trauma Center.
+
+**For Routine Cardiac Checkups / Blood Pressure:**
+- **Recommended Department:** Cardiology Center
+- **Suggested Specialist:** Dr. Marcus Vance (Cardiology Specialist)`;
+  } else {
+    coreAdvice = `### 🏥 Green Life Medical Virtual Assistant
+
+Welcome to Green Life Hospital! I am your AI Virtual Health Consultant, available 24/7 to assist with symptom guidance, department matching, and specialist recommendations.
+
+**How Green Life Hospital Can Help You:**
+- **Instant OPD Bookings**: Choose your preferred specialist and time slot online.
+- **Specialized Centers**: Cardiology, Neurology, Orthopedics, Pediatrics, General Medicine, and Oncology.
+- **Digital Health Records**: Securely upload and store your lab reports & diagnostic scans in your Patient Portal.
+
+*Need an appointment right now? Click **Book Appointment** in the top navigation bar!*`;
+  }
+
+  return coreAdvice;
+}
+
 export async function sendGeminiChatMessage(messages: Array<{ role: string; content: string }>, userContext?: any): Promise<string> {
+  const lastMsg = messages[messages.length - 1]?.content || '';
+
   // 1. First attempt calling backend Express API endpoint
   try {
     const response = await fetch('/api/gemini/chat', {
@@ -57,14 +113,25 @@ export async function sendGeminiChatMessage(messages: Array<{ role: string; cont
     const data = await parseJsonResponse(response);
 
     if (!response.ok) {
-      throw new Error(data.error || 'Server error processing chat message');
+      throw new Error(data.error || `Server error ${response.status}`);
     }
 
     if (data.reply) return data.reply;
   } catch (serverErr: any) {
-    console.warn('Backend /api/gemini/chat call failed or unavailable:', serverErr.message);
+    console.warn('Backend /api/gemini/chat call unavailable or failed:', serverErr.message);
 
-    // 2. Client-side fallback using @google/genai SDK if API key available in client env
+    // Check if server error is 403 PERMISSION_DENIED or 429 RESOURCE_EXHAUSTED
+    const serverErrStr = serverErr.message || '';
+    if (serverErrStr.includes('RESOURCE_EXHAUSTED') || serverErrStr.includes('429') || serverErrStr.includes('prepayment')) {
+      const fallback = getClinicalFallbackResponse(lastMsg);
+      return `${fallback}\n\n---\n*💳 **Notice**: Default API Key quota or prepayment credits depleted (\`429 RESOURCE_EXHAUSTED\`). You can enter your own free API Key from [Google AI Studio](https://aistudio.google.com/app/apikey) by clicking the 🔑 **Key Icon** in the chat header above.*`;
+    }
+    if (serverErrStr.includes('PERMISSION_DENIED') || serverErrStr.includes('403') || serverErrStr.includes('denied access')) {
+      const fallback = getClinicalFallbackResponse(lastMsg);
+      return `${fallback}\n\n---\n*🔑 **Notice**: Google Gemini API returned \`403 PERMISSION_DENIED\` (Project access restriction). You can click the 🔑 **Key Icon** in the chat header to enter a new API Key from [Google AI Studio](https://aistudio.google.com/app/apikey).*`;
+    }
+
+    // 2. Client-side fallback using @google/genai SDK if API key available in client env / localStorage
     const clientAi = getClientGenAI();
     if (clientAi) {
       try {
@@ -78,8 +145,6 @@ Patient Context: ${userContext ? JSON.stringify(userContext) : 'Guest Patient'}`
           parts: [{ text: m.content }]
         }));
 
-        const lastMsg = messages[messages.length - 1]?.content || '';
-
         const chat = clientAi.chats.create({
           model: 'gemini-2.5-flash',
           history,
@@ -91,21 +156,24 @@ Patient Context: ${userContext ? JSON.stringify(userContext) : 'Guest Patient'}`
       } catch (clientSdkErr: any) {
         console.error('Client SDK Gemini Chat Error:', clientSdkErr);
         const errStr = clientSdkErr.message || JSON.stringify(clientSdkErr);
-        if (errStr.includes('PERMISSION_DENIED') || errStr.includes('403') || errStr.includes('denied access')) {
-          throw new Error(`🔑 Google Gemini API Key Error (403 PERMISSION DENIED): The Google Cloud project for your API Key was denied access or has Generative Language API disabled.\n\nQuick Fix:\n1. Go to https://aistudio.google.com/app/apikey and create a new free API Key.\n2. Click the 🔑 Key icon in the chat title bar, paste your key, and click Save Key!`);
+        
+        if (errStr.includes('RESOURCE_EXHAUSTED') || errStr.includes('429') || errStr.includes('prepayment')) {
+          const fallback = getClinicalFallbackResponse(lastMsg);
+          return `${fallback}\n\n---\n*💳 **Notice**: Custom API Key quota or prepayment credits depleted (\`429 RESOURCE_EXHAUSTED\`). Please create a new free API Key at [Google AI Studio](https://aistudio.google.com/app/apikey) in a non-billing standard free tier project.*`;
         }
-        throw new Error(`Gemini AI Error: ${clientSdkErr.message || 'Failed to generate response'}`);
+        if (errStr.includes('PERMISSION_DENIED') || errStr.includes('403') || errStr.includes('denied access')) {
+          const fallback = getClinicalFallbackResponse(lastMsg);
+          return `${fallback}\n\n---\n*🔑 **Notice**: Google Gemini API returned \`403 PERMISSION_DENIED\` (The Google Cloud Project for this key is restricted or Generative Language API is disabled). Click the 🔑 **Key Icon** at the top of this chat to enter a fresh API Key from [Google AI Studio](https://aistudio.google.com/app/apikey).*`;
+        }
       }
     }
 
-    // Re-throw descriptive error if neither succeeded
-    if (serverErr.message?.includes('404')) {
-      throw new Error('Netlify Static Hosting Notice: The backend Express API (/api/gemini/chat) is not active on static hosting. Please click the 🔑 Settings icon in the chat title bar to enter your Gemini API Key or set VITE_GEMINI_API_KEY in Netlify.');
-    }
-    throw new Error(serverErr.message || 'Unable to connect to Gemini AI server endpoint.');
+    // If both failed (e.g. Netlify static hosting without backend, or missing key)
+    const fallback = getClinicalFallbackResponse(lastMsg);
+    return `${fallback}\n\n---\n*💡 **System Note**: Operating in Clinical Fallback Mode. Click the 🔑 **Key Icon** in the chat header to enter your Google Gemini API Key for live AI responses on static hosting.*`;
   }
 
-  return 'No response generated.';
+  return getClinicalFallbackResponse(lastMsg);
 }
 
 export async function analyzeMedicalReportWithGemini(params: {

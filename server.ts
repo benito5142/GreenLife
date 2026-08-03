@@ -74,6 +74,17 @@ Guidelines:
     return res.json({ reply: response.text });
   } catch (error: any) {
     console.error("Gemini Chat Error:", error);
+    const errStr = error?.message || JSON.stringify(error || {});
+    if (errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("429") || errStr.includes("prepayment")) {
+      return res.status(429).json({
+        error: "429 RESOURCE_EXHAUSTED: Default API key prepayment credits or quota exhausted.",
+      });
+    }
+    if (errStr.includes("PERMISSION_DENIED") || errStr.includes("403") || errStr.includes("denied access")) {
+      return res.status(403).json({
+        error: "403 PERMISSION_DENIED: The Google Cloud project for the API Key has restricted access.",
+      });
+    }
     return res.status(500).json({
       error: error?.message || "Failed to generate AI response from Gemini.",
     });
@@ -131,6 +142,17 @@ Please provide a structured, patient-friendly medical analysis including:
     return res.json({ analysis: response.text });
   } catch (error: any) {
     console.error("Gemini Report Analysis Error:", error);
+    const errStr = error?.message || JSON.stringify(error || {});
+    if (errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("429") || errStr.includes("prepayment")) {
+      return res.status(429).json({
+        error: "429 RESOURCE_EXHAUSTED: API quota or prepayment credits exhausted.",
+      });
+    }
+    if (errStr.includes("PERMISSION_DENIED") || errStr.includes("403") || errStr.includes("denied access")) {
+      return res.status(403).json({
+        error: "403 PERMISSION_DENIED: API Key project restricted or permission denied.",
+      });
+    }
     return res.status(500).json({
       error: error?.message || "Failed to analyze medical report with Gemini.",
     });
@@ -179,6 +201,17 @@ Please analyze these symptoms and provide:
     return res.json({ recommendation: response.text });
   } catch (error: any) {
     console.error("Gemini Doctor Match Error:", error);
+    const errStr = error?.message || JSON.stringify(error || {});
+    if (errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("429") || errStr.includes("prepayment")) {
+      return res.status(429).json({
+        error: "429 RESOURCE_EXHAUSTED: API quota or prepayment credits exhausted.",
+      });
+    }
+    if (errStr.includes("PERMISSION_DENIED") || errStr.includes("403") || errStr.includes("denied access")) {
+      return res.status(403).json({
+        error: "403 PERMISSION_DENIED: API Key project restricted or permission denied.",
+      });
+    }
     return res.status(500).json({
       error: error?.message || "Failed to evaluate symptoms with Gemini.",
     });
