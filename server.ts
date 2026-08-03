@@ -59,7 +59,7 @@ Guidelines:
     const lastMessage = messages[messages.length - 1].content || messages[messages.length - 1].text;
 
     const chat = ai.chats.create({
-      model: "gemini-3.6-flash",
+      model: "gemini-2.5-flash",
       history: history,
       config: {
         systemInstruction: systemInstruction,
@@ -120,7 +120,7 @@ Please provide a structured, patient-friendly medical analysis including:
     promptParts.push({ text: promptText });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-2.5-flash",
       contents: { parts: promptParts },
       config: {
         systemInstruction: systemInstruction,
@@ -168,7 +168,7 @@ Please analyze these symptoms and provide:
 5. **Initial Pre-consultation Advice**: Safe, non-invasive home care tips or preparation before seeing the doctor.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-2.5-flash",
       contents: promptText,
       config: {
         systemInstruction: systemInstruction,

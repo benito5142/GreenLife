@@ -81,7 +81,7 @@ Patient Context: ${userContext ? JSON.stringify(userContext) : 'Guest Patient'}`
         const lastMsg = messages[messages.length - 1]?.content || '';
 
         const chat = clientAi.chats.create({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           history,
           config: { systemInstruction, temperature: 0.7 }
         });
@@ -90,6 +90,10 @@ Patient Context: ${userContext ? JSON.stringify(userContext) : 'Guest Patient'}`
         if (res.text) return res.text;
       } catch (clientSdkErr: any) {
         console.error('Client SDK Gemini Chat Error:', clientSdkErr);
+        const errStr = clientSdkErr.message || JSON.stringify(clientSdkErr);
+        if (errStr.includes('PERMISSION_DENIED') || errStr.includes('403') || errStr.includes('denied access')) {
+          throw new Error(`🔑 Google Gemini API Key Error (403 PERMISSION DENIED): The Google Cloud project for your API Key was denied access or has Generative Language API disabled.\n\nQuick Fix:\n1. Go to https://aistudio.google.com/app/apikey and create a new free API Key.\n2. Click the 🔑 Key icon in the chat title bar, paste your key, and click Save Key!`);
+        }
         throw new Error(`Gemini AI Error: ${clientSdkErr.message || 'Failed to generate response'}`);
       }
     }
@@ -153,7 +157,7 @@ Please provide a structured, patient-friendly medical analysis including:
         promptParts.push({ text: promptText });
 
         const res = await clientAi.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           contents: { parts: promptParts },
           config: {
             systemInstruction: 'You are a Senior Clinical Diagnostic AI Specialist at Green Life Hospital.',
@@ -163,6 +167,10 @@ Please provide a structured, patient-friendly medical analysis including:
 
         if (res.text) return res.text;
       } catch (clientSdkErr: any) {
+        const errStr = clientSdkErr.message || JSON.stringify(clientSdkErr);
+        if (errStr.includes('PERMISSION_DENIED') || errStr.includes('403') || errStr.includes('denied access')) {
+          throw new Error(`🔑 Gemini API Key Error (403 PERMISSION DENIED): Generative Language API is disabled/restricted for this key. Get a new key at https://aistudio.google.com/app/apikey and save it in AI Chat Settings.`);
+        }
         throw new Error(`Gemini Report Analysis Error: ${clientSdkErr.message}`);
       }
     }
@@ -203,7 +211,7 @@ Doctors: ${JSON.stringify(availableDoctors)}
 Provide triage assessment, urgency level, recommended department, doctor match, and pre-consultation advice.`;
 
         const res = await clientAi.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           contents: promptText,
           config: {
             systemInstruction: 'You are a Clinical Triage & Department Matching AI at Green Life Hospital.',
@@ -213,6 +221,10 @@ Provide triage assessment, urgency level, recommended department, doctor match, 
 
         if (res.text) return res.text;
       } catch (clientSdkErr: any) {
+        const errStr = clientSdkErr.message || JSON.stringify(clientSdkErr);
+        if (errStr.includes('PERMISSION_DENIED') || errStr.includes('403') || errStr.includes('denied access')) {
+          throw new Error(`🔑 Gemini API Key Error (403 PERMISSION DENIED): Generative Language API is disabled/restricted for this key. Get a new key at https://aistudio.google.com/app/apikey and save it in AI Chat Settings.`);
+        }
         throw new Error(`Doctor Matcher Error: ${clientSdkErr.message}`);
       }
     }
